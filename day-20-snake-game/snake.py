@@ -1,51 +1,48 @@
 from turtle import Turtle
-SNAKE_MOVE_DISTANCE = 20
+STARTING_POSITIONS = [(0, 0), (-20, 0), (-40, 0)]
+MOVE_DISTANCE = 20
 UP = 90
 DOWN = 270
 RIGHT = 0
 LEFT = 180
 
+
 class Snake:
 
     def __init__(self):
-        self.starting_length = 3
-        self.parts: list[Turtle] = []
-        self.heading: int = 0
+        self.segments: list[Turtle] = []
+        self.create_snake()
+        self.head = self.segments[0]
+        self.head.color("green")
 
-        self.create_body()
-        self.head = self.parts[0]
+    def create_snake(self):
+        for position in STARTING_POSITIONS:
+            self.add_segment(position)
 
-    def create_body(self):
-        y = 0
-        x = 0
-        for snake_part in range(self.starting_length):
-            new_turtle = Turtle()
-            new_turtle.penup()
-            new_turtle.shape("square")
-            new_turtle.color("white")
-            new_turtle.goto(y=y, x=x)
-            self.parts.append(new_turtle)
-            x -= 20
+    def add_segment(self, position):
+        new_segment = Turtle("square")
+        new_segment.penup()
+        new_segment.color("white")
+        new_segment.goto(position)
+        self.segments.append(new_segment)
+
+    def extend(self):
+        self.add_segment(self.segments[-1].position())
 
     def move(self) -> bool:
-        for snake_part in range(len(self.parts) - 1, 0, -1):
-            new_pos_x = self.parts[snake_part -1].xcor()
-            new_pos_y = self.parts[snake_part -1].ycor()
-            self.parts[snake_part].goto(x=new_pos_x, y=new_pos_y)
-        self.head.forward(SNAKE_MOVE_DISTANCE)
+        for seg_num in range(len(self.segments) - 1, 0, -1):
+            new_x = self.segments[seg_num - 1].xcor()
+            new_y = self.segments[seg_num - 1].ycor()
+            self.segments[seg_num].goto(new_x, new_y)
+        self.head.forward(MOVE_DISTANCE)
 
-        # # alternative way where we only move back to new position
-        # self.parts.insert(0, self.parts.pop(len(self.parts) - 1))
-        # if self.heading == 0:
-        #     previous_position_x += SNAKE_MOVE_DISTANCE
-        # elif self.heading == 90:
-        #     previous_position_y += SNAKE_MOVE_DISTANCE
-        # elif self.heading == 180:
-        #     previous_position_x -= SNAKE_MOVE_DISTANCE
-        # elif self.heading == 270:
-        #     previous_position_y -= SNAKE_MOVE_DISTANCE
-        # self.parts[0].goto(x=previous_position_x, y=previous_position_y)
-
+        for segment in self.segments[1:]:
+            if self.head.position() == segment.position():
+                print("Snake hit it's own tail")
+                return False
+        if not -280 < self.head.xcor() < 280 or not -280 < self.head.ycor() < 280:
+            print("Snake hit the wall")
+            return False
         return True
 
     def set_heading_up(self):
