@@ -9,7 +9,6 @@ class UsStatesGame:
     text: Turtle
     correct_answers: int
 
-
     def __init__(self):
         self.data_us_states = pd.read_csv("50_states.csv")
         self.all_state_list = self.data_us_states["state"].to_list()
@@ -29,8 +28,8 @@ class UsStatesGame:
         self.start = time.time()
 
     def update(self):
-        answer = self.screen.textinput(f"{self.correct_answers}/50 states correct","What's another state name?")
-        answer = answer.capitalize()
+        answer = self.screen.textinput(f"{self.correct_answers}/50 states correct","What's another state name?").title()
+        # answer = answer.capitalize()
         if answer.capitalize() in self.all_state_list:
             self.all_state_list.remove(answer)
             state_data = self.data_us_states[self.data_us_states.state == answer]

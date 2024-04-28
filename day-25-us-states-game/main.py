@@ -5,4 +5,3 @@ game = UsStatesGame()
 is_game_on = True
 while is_game_on:
     is_game_on = game.update()
-    # is_game_on = False
