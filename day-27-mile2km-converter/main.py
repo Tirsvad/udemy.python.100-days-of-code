@@ -11,7 +11,6 @@ def button_clicked():
 window = Tk()
 window.title("Mile to km converter")
 window.config(padx=20, pady=20)
-window.grid_columnconfigure(20, minsize=100)
 
 label_miles = Label(text="Miles", font=FONT)
 label_miles.grid(column=2, row=0, pady=5, padx=5, sticky="w")
