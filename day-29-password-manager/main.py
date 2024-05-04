@@ -34,9 +34,9 @@ class PasswordManager(tk.Tk):
         self.option_add("*Button.Background", COLOR_ELEMENT_FOCUS)
         container = tk.Frame(self)
         container.config(pady=20, padx=20)
-        container.pack(side="top", fill="both", expand=True)
-        container.grid_rowconfigure(0, weight=1)
-        container.grid_columnconfigure(0, weight=1)
+        container.grid() #(side="top", fill="both", expand=True)
+        # container.grid_rowconfigure(0, weight=1)
+        # container.grid_columnconfigure(0, weight=1)
 
         self.frames = {}
 
@@ -52,6 +52,7 @@ class PasswordManager(tk.Tk):
 
             frame.grid(row=0, column=0, sticky="nsew")
 
+
         self.show_frame(StartPage)
 
     def show_frame(self, cont):
@@ -61,6 +62,7 @@ class PasswordManager(tk.Tk):
         :return:
         """
         frame = self.frames[cont]
+        frame.update_page()
         frame.tkraise()
 
     def add_password(self):
@@ -80,12 +82,17 @@ class PasswordManager(tk.Tk):
             })
         with open(self.data_file_path, 'w') as f:
             json.dump(self.file_data, f, sort_keys=True, indent=4)
-        messagebox.showinfo(title="Password added to file", message="Password saved")
+        messagebox.showinfo(title="Changes added to file", message="Changes saved")
 
 
 class PageHeader(tk.Frame):
     def __init__(self, parent, controller: PasswordManager):
-        tk.Frame.__init__(self, parent)
+        super(PageHeader, parent).__init__()
+        self.controller = controller
+        self.config(pady=20, padx=20)
+        # self.frame_head_body = tk.Frame(parent)
+        # super().__init__(self, parent)
+
         canvas = tk.Canvas(parent, width=200, height=200, highlightthickness=0)
         # garbage collection avoid!
         canvas.test = tk.PhotoImage(file="logo.png")
@@ -94,49 +101,56 @@ class PageHeader(tk.Frame):
                                command=lambda: controller.show_frame(AddPasswordPage))
         show_button = tk.Button(parent, text="Show your passwords", width=30,
                                 command=lambda: controller.show_frame(ListPasswordPage))
-        setting_username_button = tk.Button(parent, text="Set default username", width=30)
-        canvas.grid(row=1, column=1, columnspan=2, rowspan=5)
+        setting_username_button = tk.Button(parent, text="Set default username", width=30,
+                                            command=lambda: self.set_default_username())
+        canvas.grid(row=1, column=1, columnspan=2, rowspan=4)
 
-        add_button.grid(row=1, column=0, padx=5, pady=5)
-        show_button.grid(row=2, column=0, padx=5, pady=5)
-        setting_username_button.grid(row=3, column=0, padx=5, pady=5)
+        add_button.grid(row=1, column=0, padx=5, pady=4)
+        show_button.grid(row=2, column=0, padx=5, pady=4)
+        setting_username_button.grid(row=3, column=0, padx=5, pady=4)
 
-    def clear(self):
+    def set_default_username(self):
+        username = ""
+        username = simpledialog.askstring(title="Default username", prompt="Your most common username / email?")
+        if username:
+            self.controller.file_data["username_default"] = username
+            self.controller.file_save()
+        self.controller.show_frame(StartPage)
+
+    def update_page(self):
         pass
 
 
-class StartPage(tk.Frame):
+class StartPage(PageHeader):
 
-    def __init__(self, parent, controller: PasswordManager):
-        tk.Frame.__init__(self, parent)
-        PageHeader(self, controller)
+    def __init__(self, parent: tk.Frame, controller: PasswordManager):
+
+        super(StartPage, self).__init__(self, controller)
+        self.grid(row=0, column=0)
+
+        # PageHeader(self, controller)
         self.startpage_label = tk.Label(self, text="Homepage", font=FONT)
         self.startpage_label.grid(row=0, columnspan=3)
 
-    def clear(self):
-        pass
 
-
-class AddPasswordPage(tk.Frame):
+class AddPasswordPage(PageHeader):
 
     def __init__(self, parent, controller: PasswordManager):
-        tk.Frame.__init__(self, parent)
-        PageHeader(self, controller)
-        self.controller = controller
+        super(AddPasswordPage, self).__init__(self, controller)
+        self.frame_body = tk.Frame(self)
         self.default_username = ""
         if controller.file_data["username_default"]:
             self.default_username = controller.file_data["username_default"]
-
-        self.add_password_page_label = tk.Label(self, text="Add password page", font=FONT)
-        self.add_password_page_webpage_label = tk.Label(self, text="Webpage:", font=FONT)
-        self.add_password_page_webpage_entry = tk.Entry(self, width=43)
-        self.add_password_page_username_label = tk.Label(self, text="Email / user name:", font=FONT)
-        self.add_password_page_username_entry = tk.Entry(self, width=43)
-        self.add_password_page_password_label = tk.Label(self, text="Password:", font=FONT)
-        self.add_password_page_password_entry = tk.Entry(self, width=23)
-        self.add_password_page_generate_password_button = tk.Button(self, text="Generate password", width=15,
+        self.add_password_page_label = tk.Label(self, text="Add password", font=FONT)
+        self.add_password_page_webpage_label = tk.Label(self.frame_body, text="Webpage:", font=FONT)
+        self.add_password_page_webpage_entry = tk.Entry(self.frame_body, width=43)
+        self.add_password_page_username_label = tk.Label(self.frame_body, text="Email / user name:", font=FONT)
+        self.add_password_page_username_entry = tk.Entry(self.frame_body, width=43)
+        self.add_password_page_password_label = tk.Label(self.frame_body, text="Password:", font=FONT)
+        self.add_password_page_password_entry = tk.Entry(self.frame_body, width=23)
+        self.add_password_page_generate_password_button = tk.Button(self.frame_body, text="Generate password", width=15,
                                                                     command=self.password_generator)
-        self.add_password_page_add_button = tk.Button(self, text="Add", width=36, command=lambda: self.add_password())
+        self.add_password_page_add_button = tk.Button(self.frame_body, text="Add", width=36, command=lambda: self.add_password())
         self.insert_default_values()
 
         # put widgets to frame
@@ -149,8 +163,10 @@ class AddPasswordPage(tk.Frame):
         self.add_password_page_password_entry.grid(row=8, column=1, pady=3, padx=3)
         self.add_password_page_generate_password_button.grid(row=8, column=2, pady=3, padx=3)
         self.add_password_page_add_button.grid(row=9, columnspan=3, pady=3, padx=3)
+        self.frame_body.grid(row=5, columnspan=3)
 
     def insert_default_values(self):
+        self.add_password_page_username_entry.delete(0, tk.END)
         self.add_password_page_username_entry.insert(0, self.default_username)
 
     def add_password(self):
@@ -178,29 +194,31 @@ class AddPasswordPage(tk.Frame):
         self.add_password_page_password_entry.insert(0, password)
         pyperclip.copy(self.add_password_page_password_entry.get())
 
-    def set_default_username(self):
-        self.controller.file_data["username_default"] = simpledialog.askstring(title="Default username",
-                                                                               prompt="Your most common username / "
-                                                                                      "email?")
-
     def clear(self):
         self.add_password_page_webpage_entry.delete(0, tk.END)
         self.add_password_page_username_entry.delete(0, tk.END)
         self.add_password_page_username_entry.insert(0, self.default_username)
         self.add_password_page_password_entry.delete(0, tk.END)
 
+    def update_page(self):
+        if self.controller.file_data["username_default"]:
+            self.default_username = self.controller.file_data["username_default"]
+            self.insert_default_values()
 
-class ListPasswordPage(tk.Frame):
+
+class ListPasswordPage(PageHeader):
     def __init__(self, parent, controller: PasswordManager):
-        tk.Frame.__init__(self, parent)
-        PageHeader(self, controller)
+        super(ListPasswordPage, self).__init__(self, controller)
+        self.frame_body = tk.Frame(self)
         self.controller = controller
         self.list_password_page_label = tk.Label(self, text="List password", font=FONT)
         self.list_password_page_label.grid(row=0, column=0, columnspan=3)
         self.frame_body = tk.Frame(self)
         self.frame_body.grid(row=6, column=0, columnspan=3)
-        # tk list table
-        self.file_data = controller.file_data
+        self.file_data = self.controller.file_data
+        self.update()
+
+    def update_page(self):
         for i in range(len(self.file_data["webpages"]) + 1):
             for j in range(3):
                 self.e = tk.Entry(self.frame_body)
