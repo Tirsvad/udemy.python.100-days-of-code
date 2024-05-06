@@ -10,14 +10,13 @@ print(phonetic_dict)
 
 #TODO 2. Create a list of the phonetic code words from a word that the user inputs.
 
-ok = False
-while not ok:
+loop = True
+while not loop:
     try:
         word = input("Enter a word: ").upper()
         output_list = [phonetic_dict[letter] for letter in word]
     except KeyError:
         print("Sorry only letters is valid")
     else:
-        ok = True
-
-print(output_list)
+        loop = False
+        print(output_list)
