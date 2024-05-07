@@ -5,6 +5,7 @@ import os.path
 import secrets
 import pyperclip
 
+
 FONT = ("Courier", 12, "normal")
 COLOR_TEXT = "#874F51"
 COLOR_BG = "#90AEAD"
@@ -95,7 +96,7 @@ class PageHeader(tk.Frame):
 
         canvas = tk.Canvas(parent, width=200, height=200, highlightthickness=0)
         # garbage collection avoid!
-        canvas.test = tk.PhotoImage(file="logo.png")
+        canvas.test = tk.PhotoImage(file="../day-30-Password-Manager/logo.png")
         canvas.create_image(100, 100, image=canvas.test)
         add_button = tk.Button(parent, text="Add new password", width=30,
                                command=lambda: controller.show_frame(AddPasswordPage))
