@@ -3,7 +3,6 @@ import secrets
 import tkinter as tk
 from dataclasses import dataclass
 from tkinter import messagebox, simpledialog
-
 import pyperclip
 
 FONT = ("Courier", 12, "normal")
@@ -19,33 +18,48 @@ class DataFileWebPage:
     username: str
     password: str
 
-    def import_json(self, json_element):
-        for k, v in json_element.items():
-            if k in self.__dict__.keys():
-                self.__setattr__(k, v)
+    @staticmethod
+    def from_dict(obj: dict) -> 'DataFileWebPage':
+        """
+        populate values from obj: dict
+
+        :param obj: dictionary from json or others
+        :return:
+        """
+        _password = str(obj.get("password"))
+        _username = str(obj.get("username"))
+        _webpage = str(obj.get("webpage"))
+        return DataFileWebPage(_password, _username, _webpage)
 
 
 @dataclass
 class DataFile:
-    webpages: list[DataFileWebPage]
     file_data_version: float
     default_username: str
+    webpages: list[DataFileWebPage]
 
-    def __init__(self, webpages: list[DataFileWebPage] | None = None, default_username: str = ""):
-        # super().__init__()
-        if webpages is None:
-            self.webpages = []
+    def __init__(self):
+        self.webpages = []
         self.file_data_version = 1
-        self.default_username = default_username
+        self.default_username = ""
 
-    def import_json(self, json_element):
-        if json_element is not None:
-            for k, v in json_element.items():
-                if k in self.__dict__.keys():
-                    if k == 'webpages' and len(k) == 0:
-                        self.__setattr__(k, list(map(DataFileWebPage.import_json, v)))
-                    else:
-                        self.__setattr__(k, v)
+    def from_dict(self, obj: dict) -> 'DataFile':
+        """
+        populate values from obj: dict
+
+        :param obj: dictionary from json or others
+        :return: Datafile
+        """
+        if int(obj.get("file_data_version")) != int(self.file_data_version):
+            raise ValueError(f"File version {obj.get('file_data_version')} is not supported")
+        self.default_username = str(obj.get("default_username"))
+        _file_data_version = int(obj.get("file_data_version"))
+        self.webpages = [DataFileWebPage.from_dict(y) for y in obj.get("webpages")]
+
+        if _file_data_version != self.file_data_version:
+            print(f"File version is not compatible with this version of application")
+            raise ValueError
+        return DataFile()
 
 
 class PasswordManager(tk.Tk):
@@ -57,7 +71,8 @@ class PasswordManager(tk.Tk):
         # Data_file init
         self.data_file = DataFile()
         self.data_file_webpage = DataFileWebPage
-        self.data_file.import_json(self.file_load())
+
+        self.data_file.from_dict(self.file_load())
 
         self.option_add("*Background", COLOR_BG)
         self.option_add("*Button.Background", COLOR_ELEMENT_FOCUS)
@@ -67,8 +82,7 @@ class PasswordManager(tk.Tk):
         container = tk.Frame(self)
         container.config(pady=20, padx=20)
         container.grid()
-        # container.grid_rowconfigure(0, weight=1)
-        # container.grid_columnconfigure(0, weight=1)
+
         # iterating through a tuple consisting
         # of the different page layouts
         for page in (StartPage, AddPasswordPage, ListPasswordPage):
@@ -92,29 +106,36 @@ class PasswordManager(tk.Tk):
         frame.update_page()
         frame.tkraise()
 
-    def file_load(self) -> json:
+    def file_load(self) -> dict:
+        """
+        Load json file and return data
+        :return: data set as dictionary
+        """
         try:
-            with open(self.data_file_path, ) as f:
+            with open(self.data_file_path, 'r') as f:
                 return json.load(f)
-        except FileNotFoundError:
-            print("Data file not found. We create one with default values")
+        except FileNotFoundError as e:
+            print(f"{e.__str__()}\nWe create file with default values")
             self.file_save()
+        except json.decoder.JSONDecodeError as e:
+            print(f"{e.msg}\nData file is empty. We create s new file with default values")
+            self.file_save()
+        return self.data_file.__dict__
 
     def file_save(self):
-        # if self.frames[AddPasswordPage].add_password_page_webpage_entry.get() != "":
-        #     self.file_data["webpages"].append({
-        #         "webpage": self.frames[AddPasswordPage].add_password_page_webpage_entry.get(),
-        #         "username": self.frames[AddPasswordPage].add_password_page_username_entry.get(),
-        #         "password": self.frames[AddPasswordPage].add_password_page_password_entry.get(),
-        #     })
         with open(self.data_file_path, 'w') as f:
             print(f"file save data {self.data_file}")
             json.dump(self.data_file, f, sort_keys=True, indent=4, default=lambda o: o.__dict__)
-        messagebox.showinfo(title="Changes added to file", message="Changes saved")
+        messagebox.showinfo(title="Changes added to file", message="File saved")
 
 
 class CommonPageHeader(tk.Frame):
     def __init__(self, parent, controller: PasswordManager):
+        """
+
+        :param parent: who ever called me!
+        :param controller: PasswordManager
+        """
         super(CommonPageHeader, parent).__init__()
         self.controller = controller
         self.config(pady=20, padx=20)
@@ -147,7 +168,7 @@ class CommonPageHeader(tk.Frame):
 
 
 class StartPage(CommonPageHeader):
-    def __init__(self, parent: tk.Frame, controller):
+    def __init__(self, parent: tk.Frame, controller: PasswordManager):
         super(StartPage, self).__init__(self, controller)
         self.grid(row=0, column=0)
         self.start_page_label = tk.Label(self, text="Home", font=FONT)
@@ -155,7 +176,7 @@ class StartPage(CommonPageHeader):
 
 
 class AddPasswordPage(CommonPageHeader):
-    def __init__(self, parent: tk.Frame, controller):
+    def __init__(self, parent: tk.Frame, controller: PasswordManager):
         super(AddPasswordPage, self).__init__(self, controller)
 
         self.default_username = ""
@@ -163,9 +184,11 @@ class AddPasswordPage(CommonPageHeader):
             self.default_username = controller.data_file.default_username
 
         self.grid(row=0, column=0)
-        self.start_page_label = tk.Label(self, text="Add password", font=FONT)
+        self.add_password_page_label = tk.Label(self, text="Add password", font=FONT)
         self.add_password_page_webpage_label = tk.Label(self, text="Webpage:", font=FONT)
-        self.add_password_page_webpage_entry = tk.Entry(self, width=43)
+        self.add_password_page_webpage_entry = tk.Entry(self, width=29)
+        self.add_password_page_webpage_search_button = tk.Button(self, text="Search", width=10,
+                                                                 command=self.search_webpage)
         self.add_password_page_username_label = tk.Label(self, text="Email / user name:", font=FONT)
         self.add_password_page_username_entry = tk.Entry(self, width=43)
         self.add_password_page_password_label = tk.Label(self, text="Password:", font=FONT)
@@ -177,10 +200,10 @@ class AddPasswordPage(CommonPageHeader):
         self.insert_default_values()
 
         # Create the grid
-        # self.start_page_label.grid(row=0, columnspan=3)
-        # self.add_password_page_label.grid(row=0, column=0, columnspan=3)
+        self.add_password_page_label.grid(row=0, column=0, columnspan=3)
         self.add_password_page_webpage_label.grid(row=6, column=0)
-        self.add_password_page_webpage_entry.grid(row=6, column=1, columnspan=2, pady=3, padx=3)
+        self.add_password_page_webpage_entry.grid(row=6, column=1, columnspan=2, pady=3, padx=3, sticky="W")
+        self.add_password_page_webpage_search_button.grid(row=6, column=2, pady=3, padx=3, sticky="E")
         self.add_password_page_username_label.grid(row=7, column=0)
         self.add_password_page_username_entry.grid(row=7, column=1, columnspan=2, pady=3, padx=3)
         self.add_password_page_password_label.grid(row=8, column=0)
@@ -194,6 +217,8 @@ class AddPasswordPage(CommonPageHeader):
 
     def add_password(self):
         error_msg = ""
+
+        # validation
         if self.add_password_page_webpage_entry.get() == "":
             error_msg += "Webpage is not filled\n"
         if self.add_password_page_username_entry.get() == "":
@@ -203,14 +228,14 @@ class AddPasswordPage(CommonPageHeader):
         if error_msg:
             messagebox.showwarning(title="Required input fields not filled", message=error_msg)
             return
+
+        # data class data_webpage is populate
         data_webpage = DataFileWebPage(
             webpage=self.add_password_page_webpage_entry.get(),
             username=self.add_password_page_username_entry.get(),
             password=self.add_password_page_password_entry.get()
         )
         self.controller.data_file.webpages.append(data_webpage)
-        # print(f"add password {data_webpage}")
-        # print(f"add password {self.controller.data_file_webpage.__annotations__}")
 
         self.controller.file_save()
 
@@ -226,6 +251,17 @@ class AddPasswordPage(CommonPageHeader):
         self.add_password_page_password_entry.insert(0, password)
         pyperclip.copy(self.add_password_page_password_entry.get())
 
+    def search_webpage(self):
+        webpage_entry = self.add_password_page_webpage_entry.get()
+        i = []
+        # TODO
+        print(f"webpage_entry {webpage_entry}")
+        print(f"length {len(self.controller.data_file.webpages)}")
+        for index in range(0, len(self.controller.data_file.webpages)):
+            if self.controller.data_file.webpages[index].webpage == webpage_entry:
+                i.append(index)
+                print(self.controller.data_file.webpages[index].webpage)
+
     def clear(self):
         self.add_password_page_webpage_entry.delete(0, tk.END)
         self.add_password_page_username_entry.delete(0, tk.END)
@@ -239,7 +275,7 @@ class AddPasswordPage(CommonPageHeader):
 
 
 class ListPasswordPage(CommonPageHeader):
-    def __init__(self, parent: tk.Frame, controller):
+    def __init__(self, parent: tk.Frame, controller: PasswordManager):
         super(ListPasswordPage, self).__init__(self, controller)
         self.grid(row=0, column=0)
         self.start_page_label = tk.Label(self, text="List passwords", font=FONT)
