@@ -26,10 +26,10 @@ class DataFileWebPage:
         :param obj: dictionary from json or others
         :return:
         """
-        _password = str(obj.get("password"))
-        _username = str(obj.get("username"))
-        _webpage = str(obj.get("webpage"))
-        return DataFileWebPage(_password, _username, _webpage)
+        webpage = str(obj.get("webpage"))
+        username = str(obj.get("username"))
+        password = str(obj.get("password"))
+        return DataFileWebPage(webpage=webpage, username=username, password=password)
 
 
 @dataclass
@@ -53,10 +53,10 @@ class DataFile:
         if int(obj.get("file_data_version")) != int(self.file_data_version):
             raise ValueError(f"File version {obj.get('file_data_version')} is not supported")
         self.default_username = str(obj.get("default_username"))
-        _file_data_version = int(obj.get("file_data_version"))
+        file_data_version = int(obj.get("file_data_version"))
         self.webpages = [DataFileWebPage.from_dict(y) for y in obj.get("webpages")]
 
-        if _file_data_version != self.file_data_version:
+        if file_data_version != self.file_data_version:
             print(f"File version is not compatible with this version of application")
             raise ValueError
         return DataFile()
@@ -124,7 +124,6 @@ class PasswordManager(tk.Tk):
 
     def file_save(self):
         with open(self.data_file_path, 'w') as f:
-            print(f"file save data {self.data_file}")
             json.dump(self.data_file, f, sort_keys=True, indent=4, default=lambda o: o.__dict__)
         messagebox.showinfo(title="Changes added to file", message="File saved")
 
@@ -146,7 +145,7 @@ class CommonPageHeader(tk.Frame):
         canvas.create_image(100, 100, image=canvas.logo)
         add_button = tk.Button(parent, text="Add new password", width=30,
                                command=lambda: controller.show_frame(AddPasswordPage))
-        show_button = tk.Button(parent, text="Show your passwords", width=30,
+        show_button = tk.Button(parent, text="Show password list", width=30,
                                 command=lambda: controller.show_frame(ListPasswordPage))
         setting_username_button = tk.Button(parent, text="Set default username", width=30,
                                             command=lambda: self.set_default_username())
@@ -188,7 +187,7 @@ class AddPasswordPage(CommonPageHeader):
         self.add_password_page_webpage_label = tk.Label(self, text="Webpage:", font=FONT)
         self.add_password_page_webpage_entry = tk.Entry(self, width=29)
         self.add_password_page_webpage_search_button = tk.Button(self, text="Search", width=10,
-                                                                 command=self.search_webpage)
+                                                                 command=self.search_password)
         self.add_password_page_username_label = tk.Label(self, text="Email / user name:", font=FONT)
         self.add_password_page_username_entry = tk.Entry(self, width=43)
         self.add_password_page_password_label = tk.Label(self, text="Password:", font=FONT)
@@ -229,9 +228,23 @@ class AddPasswordPage(CommonPageHeader):
             messagebox.showwarning(title="Required input fields not filled", message=error_msg)
             return
 
+        # see if it already exists
+        for i in range(0, len(self.controller.data_file.webpages)):
+            if self.controller.data_file.webpages[i].webpage.lower() == \
+                self.add_password_page_webpage_entry.get().lower() and \
+                    self.controller.data_file.webpages[i].username.lower() == \
+                    self.add_password_page_username_entry.get().lower():
+                if messagebox.askyesno(title="Data entry already exists",
+                        message=f"Overwrite existing password for {self.controller.data_file.webpages[i].webpage}"):
+                    self.controller.data_file.webpages[i].password = self.add_password_page_password_entry.get()
+                    self.controller.file_save()
+                self.clear()
+                return
+
+
         # data class data_webpage is populate
         data_webpage = DataFileWebPage(
-            webpage=self.add_password_page_webpage_entry.get(),
+            webpage=self.add_password_page_webpage_entry.get().title(),
             username=self.add_password_page_username_entry.get(),
             password=self.add_password_page_password_entry.get()
         )
@@ -240,10 +253,7 @@ class AddPasswordPage(CommonPageHeader):
         self.controller.file_save()
 
         # clear entry fields
-        self.add_password_page_webpage_entry.delete(0, tk.END)
-        self.add_password_page_username_entry.delete(0, tk.END)
-        self.add_password_page_password_entry.delete(0, tk.END)
-        self.insert_default_values()
+        self.clear()
 
     def password_generator(self, length=12):
         self.add_password_page_password_entry.delete(0, tk.END)
@@ -251,16 +261,26 @@ class AddPasswordPage(CommonPageHeader):
         self.add_password_page_password_entry.insert(0, password)
         pyperclip.copy(self.add_password_page_password_entry.get())
 
-    def search_webpage(self):
+    def search_password(self):
         webpage_entry = self.add_password_page_webpage_entry.get()
         i = []
         # TODO
-        print(f"webpage_entry {webpage_entry}")
-        print(f"length {len(self.controller.data_file.webpages)}")
         for index in range(0, len(self.controller.data_file.webpages)):
-            if self.controller.data_file.webpages[index].webpage == webpage_entry:
+            if self.controller.data_file.webpages[index].webpage == webpage_entry.title():
                 i.append(index)
-                print(self.controller.data_file.webpages[index].webpage)
+        if len(i) == 0:
+            messagebox.showwarning(title="Not found", message="Website is not found")
+            return
+        elif len(i) == 2:
+            messagebox.showinfo(title="Multiple found",
+                                message="More than 1 entry found. Use <show password list> instead")
+            return
+        pyperclip.copy(self.controller.data_file.webpages[i[0]].password)
+        messagebox.showinfo(title="Your password",
+                            message=f"webpage: {self.controller.data_file.webpages[i[0]].webpage}\n"
+                                    f"username: { self.controller.data_file.webpages[i[0]].username}\n"
+                                    f"password: {self.controller.data_file.webpages[i[0]].password}")
+
 
     def clear(self):
         self.add_password_page_webpage_entry.delete(0, tk.END)
@@ -278,5 +298,37 @@ class ListPasswordPage(CommonPageHeader):
     def __init__(self, parent: tk.Frame, controller: PasswordManager):
         super(ListPasswordPage, self).__init__(self, controller)
         self.grid(row=0, column=0)
-        self.start_page_label = tk.Label(self, text="List passwords", font=FONT)
-        self.start_page_label.grid(row=0, columnspan=3)
+        self.list_password_page_label = tk.Label(self, text="List password", font=FONT)
+        self.list_password_page_label.grid(row=0, column=0, columnspan=3)
+        self.frame_body = tk.Frame(self)
+        # self.frame_body.config(width=140)
+        self.frame_body.grid(row=6, column=0, columnspan=3)
+        self.e = None
+        self.update()
+
+    def update_page(self):
+        i = 0
+
+        self.e = tk.Entry(self.frame_body)
+        self.e.insert(tk.END, "Webpage")
+        self.e.grid(row=i + 7, column=0)
+
+        self.e = tk.Entry(self.frame_body)
+        self.e.insert(tk.END, "Username")
+        self.e.grid(row=i + 7, column=1)
+
+        self.e = tk.Entry(self.frame_body)
+        self.e.insert(tk.END, "Password")
+        self.e.grid(row=i + 7, column=2)
+
+        for webpage in self.controller.data_file.webpages:
+            i += 1
+            self.e = tk.Entry(self.frame_body)
+            self.e.insert(tk.END, webpage.webpage)
+            self.e.grid(row=i + 7, column=0)
+            self.e = tk.Entry(self.frame_body)
+            self.e.insert(tk.END, webpage.username)
+            self.e.grid(row=i + 7, column=1)
+            self.e = tk.Entry(self.frame_body)
+            self.e.insert(tk.END, webpage.password)
+            self.e.grid(row=i + 7, column=2)
