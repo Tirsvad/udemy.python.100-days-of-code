@@ -1,66 +1,11 @@
 import json
 import secrets
 import tkinter as tk
-from dataclasses import dataclass
 from tkinter import messagebox, simpledialog
 import pyperclip
-
-FONT = ("Courier", 12, "normal")
-FONT_TITLE = ("Ariel", 32, "normal")
-COLOR_TEXT = "#874F51"
-COLOR_BG = "#90AEAD"
-COLOR_ELEMENT_FOCUS = "#D4483B"
-COLOR_ELEMENT = "#FBE9D0"
-
-
-@dataclass
-class DataFileWebPage:
-    webpage: str
-    username: str
-    password: str
-
-    @staticmethod
-    def from_dict(obj: dict) -> 'DataFileWebPage':
-        """
-        populate values from obj: dict
-
-        :param obj: dictionary from json or others
-        :return:
-        """
-        webpage = str(obj.get("webpage"))
-        username = str(obj.get("username"))
-        password = str(obj.get("password"))
-        return DataFileWebPage(webpage=webpage, username=username, password=password)
-
-
-@dataclass
-class DataFile:
-    file_data_version: float
-    default_username: str
-    webpages: list[DataFileWebPage]
-
-    def __init__(self):
-        self.webpages = []
-        self.file_data_version = 1
-        self.default_username = ""
-
-    def from_dict(self, obj: dict) -> 'DataFile':
-        """
-        populate values from obj: dict
-
-        :param obj: dictionary from json or others
-        :return: Datafile
-        """
-        if int(obj.get("file_data_version")) != int(self.file_data_version):
-            raise ValueError(f"File version {obj.get('file_data_version')} is not supported")
-        self.default_username = str(obj.get("default_username"))
-        file_data_version = int(obj.get("file_data_version"))
-        self.webpages = [DataFileWebPage.from_dict(y) for y in obj.get("webpages")]
-
-        if file_data_version != self.file_data_version:
-            print(f"File version is not compatible with this version of application")
-            raise ValueError
-        return DataFile()
+from os.path import expanduser
+from Models.dataModel import *
+from constants import *
 
 
 # class PasswordManager(tk.Tk):
@@ -70,11 +15,11 @@ class PasswordManager:
 
     def __init__(self):
         self.window = tk.Tk()
-        self.data_file_path = "data.json"
+        self.data_file_path = "data/data.json"
 
         # Data_file init
-        self.data_file = DataFile()
-        self.data_file_webpage = DataFileWebPage
+        self.data_file = DataModel()
+        self.data_file_webpage = DataApproachModel
 
         self.data_file.from_dict(self.file_load())
 
@@ -122,16 +67,17 @@ class PasswordManager:
                 return json.load(f)
         except FileNotFoundError as e:
             print(f"{e.__str__()}\nWe create file with default values")
-            self.file_save()
+            self.file_save(silent=True)
         except json.decoder.JSONDecodeError as e:
             print(f"{e.msg}\nData file is empty. We create s new file with default values")
             self.file_save()
         return self.data_file.__dict__
 
-    def file_save(self):
+    def file_save(self, silent:bool = False):
         with open(self.data_file_path, 'w') as f:
             json.dump(self.data_file, f, sort_keys=True, indent=4, default=lambda o: o.__dict__)
-        messagebox.showinfo(title="Changes added to file", message="File saved")
+        if not silent:
+            messagebox.showinfo(title="Changes added to file", message="File saved")
 
 
 class CommonPageHeader(tk.Frame):
@@ -150,7 +96,7 @@ class CommonPageHeader(tk.Frame):
         # self.canvas = tk.Canvas(parent, width=600, highlightthickness=1)
         self.canvas = tk.Canvas(parent, width=600, height=200, highlightthickness=0)
         # garbage collection avoid!
-        self.canvas.logo = tk.PhotoImage(file="logo.png")
+        self.canvas.logo = tk.PhotoImage(file="images/logo.png")
         self.title = self.canvas.create_text(170, 40, text="Common page", font=FONT_TITLE)
         self.canvas.create_image(450, 100, image=self.canvas.logo)
         self.canvas.grid(row=0, column=0, columnspan=3)
@@ -251,7 +197,7 @@ class AddPasswordPage(CommonPageHeader):
                 return
 
         # data class data_webpage is populate
-        data_webpage = DataFileWebPage(
+        data_webpage = DataApproachModel(
             webpage=self.add_password_page_webpage_entry.get().title(),
             username=self.add_password_page_username_entry.get(),
             password=self.add_password_page_password_entry.get()
