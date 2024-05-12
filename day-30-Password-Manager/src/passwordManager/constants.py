@@ -1,4 +1,4 @@
-
+DATA_FILE_PATH = "data/data.json"
 
 FONT = ("Courier", 12, "normal")
 FONT_TITLE = ("Ariel", 32, "normal")

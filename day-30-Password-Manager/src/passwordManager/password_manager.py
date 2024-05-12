@@ -3,19 +3,15 @@ import secrets
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 import pyperclip
-from os.path import expanduser
-from Models.dataModel import *
-from constants import *
+from model_data import DataModel, DataApproachModel
+import constants
 
 
 # class PasswordManager(tk.Tk):
-class PasswordManager:
-    window: tk.Tk
-    data_file_path: str
+class PasswordManager(tk.Tk):
 
     def __init__(self):
-        self.window = tk.Tk()
-        self.data_file_path = "data/data.json"
+        super().__init__()
 
         # Data_file init
         self.data_file = DataModel()
@@ -23,12 +19,12 @@ class PasswordManager:
 
         self.data_file.from_dict(self.file_load())
 
-        self.window.option_add("*Background", COLOR_BG)
-        self.window.option_add("*Button.Background", COLOR_ELEMENT_FOCUS)
+        self.option_add("*Background", constants.COLOR_BG)
+        self.option_add("*Button.Background", constants.COLOR_ELEMENT_FOCUS)
 
         # all the pages is being created
         self.frames = {}
-        container = tk.Frame(self.window)
+        container = tk.Frame(self)
         container.config(pady=20, padx=20)
         container.grid()
 
@@ -45,7 +41,7 @@ class PasswordManager:
             frame.grid(row=0, column=0, sticky="nsew")
         self.show_frame(StartPage)
 
-        self.window.mainloop()
+        # self.mainloop()
 
     def show_frame(self, cont):
         """
@@ -63,7 +59,7 @@ class PasswordManager:
         :return: data set as dictionary
         """
         try:
-            with open(self.data_file_path, 'r') as f:
+            with open(constants.DATA_FILE_PATH, 'r') as f:
                 return json.load(f)
         except FileNotFoundError as e:
             print(f"{e.__str__()}\nWe create file with default values")
@@ -74,7 +70,7 @@ class PasswordManager:
         return self.data_file.__dict__
 
     def file_save(self, silent:bool = False):
-        with open(self.data_file_path, 'w') as f:
+        with open(constants.DATA_FILE_PATH, 'w') as f:
             json.dump(self.data_file, f, sort_keys=True, indent=4, default=lambda o: o.__dict__)
         if not silent:
             messagebox.showinfo(title="Changes added to file", message="File saved")
@@ -97,7 +93,7 @@ class CommonPageHeader(tk.Frame):
         self.canvas = tk.Canvas(parent, width=600, height=200, highlightthickness=0)
         # garbage collection avoid!
         self.canvas.logo = tk.PhotoImage(file="images/logo.png")
-        self.title = self.canvas.create_text(170, 40, text="Common page", font=FONT_TITLE)
+        self.title = self.canvas.create_text(170, 40, text="Common page", font=constants.FONT_TITLE)
         self.canvas.create_image(450, 100, image=self.canvas.logo)
         self.canvas.grid(row=0, column=0, columnspan=3)
         add_button = tk.Button(parent, text="Add new password", width=30,
@@ -140,13 +136,13 @@ class AddPasswordPage(CommonPageHeader):
         self.canvas.itemconfigure(self.title, text="Add password")
 
         self.grid(row=0, column=0)
-        self.add_password_page_webpage_label = tk.Label(self, text="Webpage:", font=FONT)
+        self.add_password_page_webpage_label = tk.Label(self, text="Webpage:", font=constants.FONT)
         self.add_password_page_webpage_entry = tk.Entry(self, width=40)
         self.add_password_page_webpage_search_button = tk.Button(self, text="Search", width=10,
                                                                  command=self.search_password)
-        self.add_password_page_username_label = tk.Label(self, text="Email / user name:", font=FONT)
+        self.add_password_page_username_label = tk.Label(self, text="Email / user name:", font=constants.FONT)
         self.add_password_page_username_entry = tk.Entry(self, width=40)
-        self.add_password_page_password_label = tk.Label(self, text="Password:", font=FONT)
+        self.add_password_page_password_label = tk.Label(self, text="Password:", font=constants.FONT)
         self.add_password_page_password_entry = tk.Entry(self, width=40)
 
         self.add_password_page_generate_password_button = tk.Button(self, text="Generate password", width=15,

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from .dataApproachModel import DataApproachModel
+from model_data_approach import DataApproachModel
 
 @dataclass
 class DataModel:
