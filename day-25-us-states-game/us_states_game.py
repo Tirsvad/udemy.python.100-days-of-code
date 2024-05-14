@@ -1,6 +1,7 @@
 from turtle import Turtle, Screen
 import time
 import pandas as pd
+from constants import *
 
 
 class UsStatesGame:
@@ -10,13 +11,13 @@ class UsStatesGame:
     correct_answers: int
 
     def __init__(self):
-        self.data_us_states = pd.read_csv("50_states.csv")
+        self.data_us_states = pd.read_csv(STATES_FILE)
         self.all_state_list = self.data_us_states["state"].to_list()
         self.screen = Screen()
         self.screen.title("U.S. states game")
         self.screen.setup(725,491)
         self.screen.tracer(0)
-        self.screen.bgpic('blank_states_img.gif')
+        self.screen.bgpic(STATES_IMAGE_FILE)
         self.text = Turtle()
         self.text.hideturtle()
         self.text.penup()
@@ -43,7 +44,7 @@ class UsStatesGame:
                 return False
         if answer.lower() == "exit":
             new_data = pd.DataFrame(self.all_state_list)
-            new_data.to_csv("missed_state.csv")
+            new_data.to_csv(STATES_MISSED_FILE)
             print(new_data)
             return False
         self.screen.update()
