@@ -14,13 +14,13 @@ with open(file="quotes.txt") as f:
 now = dt.datetime.now()
 if weekday == MONDAY:
     print("it's today")
-    # with smtplib.SMTP("smtp.gmail.com") as connection:
-    #     connection.starttls()
-    #     connection.login(user=EMAIL, password=PASSWORD)
-    #     connection.sendmail(
-    #         from_addr=EMAIL,
-    #         to_addrs=EMAIL_SEND_TO,
-    #         msg=f"Subject:Monday Motivation\n\n{quote}"
-    #     )
+    with smtplib.SMTP("smtp.gmail.com") as connection:
+        connection.starttls()
+        connection.login(user=EMAIL, password=PASSWORD)
+        connection.sendmail(
+            from_addr=EMAIL,
+            to_addrs=EMAIL_SEND_TO,
+            msg=f"Subject:Monday Motivation\n\n{quote}"
+        )
 
 
