@@ -1,13 +1,14 @@
+import datetime as dt
 import json
+import tkinter as tk
+
+import requests
+import tkintermapview
+from PIL import Image, ImageTk
+from tkintermapview import canvas_position_marker
 
 from constants import *
-import datetime as dt
-import requests
-import smtplib
-import tkinter as tk
-import tkintermapview
-from tkintermapview import canvas_position_marker
-from PIL import Image, ImageTk
+from model_settings import SettingsModel, SunsetSunriseModel
 
 
 class IssPosition(tk.Tk):
@@ -16,20 +17,25 @@ class IssPosition(tk.Tk):
     sunrise: int
     sunset: int
     time_now: dt.datetime
+
     iss_latitude: float | None = None
     iss_longitude: float | None = None
+
     map_widget: tkintermapview.TkinterMapView | None = None
     marker_list: list[canvas_position_marker.CanvasPositionMarker] = []
     map_tile_loader: tkintermapview.offline_loading.OfflineLoader | None = None
+
     # time events id
     after_id_update_map = None
     after_id_seconds_to_midnight = None
+
     # icons
     icon_satellite: ImageTk.PhotoImage
     icon_satellite_red: ImageTk.PhotoImage
     icon_home: ImageTk.PhotoImage
+
     # app settings
-    settings: dict = {}
+    settings: SettingsModel = {}
 
     def __init__(self):
         super().__init__()
@@ -43,68 +49,9 @@ class IssPosition(tk.Tk):
         self.map_tile_loader = tkintermapview.OfflineLoader(path=DB_FILE)
 
         self.title("Track ISS space station")
+        self.config(menu=self.menubar())
 
-    def destroy(self):
-        # self.after_cancel(self.after_id_update_map)
-        # self.after_cancel(self.after_id_seconds_to_midnight)
-        super().destroy()
-        exit()
-
-    def run(self) -> None:
-        self.load_config()
-        self.get_sunrise_sunset()
-        self.create_map()
-        self.update_map()
-        self.mainloop()
-
-    def load_config(self):
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                self.settings = json.load(f)
-        except FileNotFoundError:
-            self.save_config(self.settings)
-        else:
-            self.sunrise = self.settings['sunrise']
-            self.sunset = self.settings['sunset']
-
-    @staticmethod
-    def save_config(data: dict):
-        with open(CONFIG_FILE, 'w') as f:
-            json.dump(data, f)
-
-    def get_sunrise_sunset(self) -> None:
-        self.time_now = dt.datetime.now()
-        if 'date' in self.settings.keys():
-            if self.settings['date'] == str(self.time_now.date()):
-                return
-
-        print("Getting sunrise and sunset")
-        midnight = dt.datetime.combine(self.time_now.date(), dt.time())
-        seconds_to_midnight = 24*60*60 - (self.time_now - midnight).seconds
-        self.after_id_seconds_to_midnight = self.after(seconds_to_midnight, func=self.get_sunrise_sunset)
-
-        print(self.time_now.date())
-        self.settings.update({'date': self.time_now.date().isoformat()})
-        print(self.settings)
-        response = requests.get(
-            url=SUNRISE_SUNSET_API,
-            params={'lat': MY_LATITUDE, 'lng': MY_LONGITUDE, 'formatted': 0})
-        response.raise_for_status()
-        data = response.json()
-        self.settings['sunrise'] = data['results']['sunrise'].split(sep='T')[1].split(':')[0]
-        self.settings['sunset'] = data['results']['sunset'].split(sep='T')[1].split(':')[0]
-        self.save_config(self.settings)
-
-
-    def get_iss_position(self) -> tuple[float, float]:
-        response = requests.get(ISS_POSITION_API)
-        response.raise_for_status()
-        data: dict = response.json()
-        self.iss_latitude = float(data['iss_position']['latitude'])
-        self.iss_longitude = float(data['iss_position']['longitude'])
-        return self.iss_latitude, self.iss_longitude
-
-    def can_see_iss(self) -> bool:
+    def can_i_see_iss(self) -> bool:
 
         if self.iss_latitude - 5 < MY_LATITUDE < self.iss_latitude + 5 and \
                 self.iss_longitude - 5 < MY_LONGITUDE < self.iss_longitude + 5:
@@ -143,6 +90,89 @@ class IssPosition(tk.Tk):
             text="",
             icon=self.icon_home)
 
+    def destroy(self) -> None:
+        # self.after_cancel(self.after_id_update_map)
+        # self.after_cancel(self.after_id_seconds_to_midnight)
+        super().destroy()
+        exit()
+
+    def get_iss_position(self) -> tuple[float, float]:
+        response = requests.get(ISS_POSITION_API)
+        response.raise_for_status()
+        data: dict = response.json()
+        self.iss_latitude = float(data['iss_position']['latitude'])
+        self.iss_longitude = float(data['iss_position']['longitude'])
+        return self.iss_latitude, self.iss_longitude
+
+    def get_sunrise_sunset(self) -> 'SunsetSunriseModel':
+        self.time_now = dt.datetime.now()
+        if not self.settings or not self.settings.date == str(self.time_now.date()):
+            print("Getting sunrise and sunset")
+
+            midnight = dt.datetime.combine(self.time_now.date(), dt.time())
+            seconds_to_midnight = 24 * 60 * 60 - (self.time_now - midnight).seconds
+            self.after_id_seconds_to_midnight = self.after(seconds_to_midnight, func=self.get_sunrise_sunset)
+
+            # self.settings.date = self.time_now.date().isoformat()
+
+            response = requests.get(
+                url=SUNRISE_SUNSET_API,
+                params={'lat': MY_LATITUDE, 'lng': MY_LONGITUDE, 'formatted': 0})
+            response.raise_for_status()
+            _data = response.json()
+            _sunset_sunrise = SunsetSunriseModel(**_data['results'])
+            self.settings = SettingsModel(date=str(self.time_now.date()), sunset_sunrise=_sunset_sunrise)
+            print(self.settings)
+            print(f"__dict__  {self.settings.__repr__()}")
+            self.save_config(self.settings.as_dict())
+            print(f"__dict__  {self.settings.__dict__}")
+
+        self.sunrise = int(self.settings.sunset_sunrise.sunrise.split(sep='T')[1].split(':')[0])
+        self.sunset = int(self.settings.sunset_sunrise.sunset.split(sep='T')[1].split(':')[0])
+
+        return self.settings.sunset_sunrise
+
+    def load_config(self):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                self.settings = SettingsModel.from_dict(json.load(f))
+        except FileNotFoundError:
+            self.save_config()
+        else:
+            self.sunrise = int(self.settings.sunset_sunrise.sunrise.split(sep='T')[1].split(':')[0])
+            self.sunset = int(self.settings.sunset_sunrise.sunrise.split(sep='T')[1].split(':')[0])
+
+
+    def menubar(self) -> tk.Menu:
+        # image = self.read_first_image, compound = tk.LEFT
+        menubar = tk.Menu(self)
+        menu_file = tk.Menu(menubar, tearoff=0)
+        menu_file.add_command(label='Settings', command=self.set_settings)
+        menu_file.add_separator()
+        menu_file.add_command(label='Exit', command=self.destroy)
+        menubar.add_cascade(label="File", menu=menu_file)
+        return menubar
+
+    def run(self) -> None:
+        self.load_config()
+        self.get_sunrise_sunset()
+        self.create_map()
+        self.update_map()
+        self.mainloop()
+
+
+    @staticmethod
+    def save_config(data=None):
+        if data is None:
+            data = {}
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(data, f)
+
+    def set_settings(self):
+        pass
+
+
+
     def update_map(self) -> None:
         self.time_now = dt.datetime.now()
         # self.get_sunrise_sunset()
@@ -163,6 +193,3 @@ class IssPosition(tk.Tk):
             icon=self.icon_satellite_red))
         self.after_id_update_map = self.after(60000, func=self.update_map)
 
-
-app = IssPosition()
-app.run()
