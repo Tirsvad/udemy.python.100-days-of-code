@@ -1,5 +1,6 @@
 import html
 
+
 class QuizBrain:
 
     def __init__(self, q_list):
@@ -29,4 +30,3 @@ class QuizBrain:
 
         print(f"Your current score is: {self.score}/{self.question_number}")
         print("\n")
-

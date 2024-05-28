@@ -1,4 +1,5 @@
 import tkinter as tk
+
 from quiz_brain import QuizBrain
 
 THEME_COLOR = "#375362"
@@ -36,11 +37,9 @@ class QuizInterface:
         self.button_true.grid(row=2, column=0)
         self.button_false.grid(row=2, column=1)
 
-
         self.get_next_question()
 
         self.window.mainloop()
-
 
     def get_next_question(self):
         self.canvas.configure(bg=CANVAS_BG)
