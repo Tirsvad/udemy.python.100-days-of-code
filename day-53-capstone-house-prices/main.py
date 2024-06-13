@@ -37,7 +37,6 @@ class FindHousing:
             rent_property.location = willow_list[i].find_next('address').get_text().strip()
             self.rent_property_list.append(rent_property)
             del rent_property
-            print(self.rent_property_list)
 
     def fill_google_form(self):
         chrome_options = webdriver.ChromeOptions()
