@@ -108,7 +108,6 @@ class TinderAutoSwipe:
                 'recsCardboard__cards'
             )
 
-            print(tinder_card.get_attribute('innerHTML'))
             # with open("t.html", "w") as f:
             #     f.write(tinder_card.get_attribute('innerHTML'))
 
