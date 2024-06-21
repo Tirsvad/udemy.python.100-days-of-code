@@ -2,7 +2,6 @@ from datetime import date
 from flask import Flask, abort, render_template, redirect, url_for, flash
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from flask_gravatar import Gravatar
 from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user, login_required
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
@@ -10,8 +9,10 @@ from sqlalchemy import Integer, String, Text
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 # Import your forms from the forms.py
-from forms import CreatePostForm, RegisterForm
+from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from constants import *
+from hashlib import sha256
+from urllib.parse import urlencode
 
 
 '''
@@ -43,15 +44,18 @@ def load_user(user_id):
     return db.get_or_404(User, user_id)
 
 
+
+
+
 # For adding profile images to the comment section
-gravatar = Gravatar(app,
-                    size=100,
-                    rating='g',
-                    default='retro',
-                    force_default=False,
-                    force_lower=False,
-                    use_ssl=False,
-                    base_url=None)
+# gravatar = Gravatar(app,
+#                     size=100,
+#                     rating='g',
+#                     default='retro',
+#                     force_default=False,
+#                     force_lower=False,
+#                     use_ssl=False,
+#                     base_url=None)
 
 
 # CREATE DATABASE
@@ -110,17 +114,28 @@ with app.app_context():
     db.create_all()
 
 
+def gravatar_url(email, size=100, rating='g', default='retro', force_default=False, ):
+    hash_value = sha256(email.lower().encode('utf-8')).hexdigest()
+    query_params = urlencode({'d': default, 's': str(size), 'r': rating, 'f': force_default})
+    return f"https://www.gravatar.com/avatar/{hash_value}?{query_params}"
+
+
+app.jinja_env.filters['gravatar'] = gravatar_url
+
 # Create an admin-only decorator
 def admin_only(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # If id is not 1 then return abort with 403 error
-        if current_user.id != 1:
+        # If id is not 2 then return abort with 403 error
+        if current_user.id != 2:
             return abort(403)
         # Otherwise continue with the route function
         return f(*args, **kwargs)
 
     return decorated_function
+
+
+
 
 
 # Done: Use Werkzeug to hash the user's password when creating a new user.
@@ -178,7 +193,7 @@ def login():
         else:
             login_user(user)
             return redirect(url_for('get_all_posts'))
-    return render_template("login.html")
+    return render_template("login.html", form=form)
 
 
 @app.route('/logout')
@@ -195,7 +210,7 @@ def get_all_posts():
 
 
 # TODO: Allow logged-in users to comment on posts
-@app.route("/post/<int:post_id>")
+@app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
     requested_post = db.get_or_404(BlogPost, post_id)
     # Add the CommentForm to the route
