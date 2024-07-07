@@ -1,0 +1,24 @@
+<meta charset="utf-8"/>
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/>
+<meta name="description" content=""/>
+<meta name="author" content=""/>
+<title>{% block title %}{% endblock %}</title>
+<!-- Load Bootstrap-Flask CSS here -->
+{{ bootstrap.load_css() }}
+<link
+  rel="icon"
+  type="image/x-icon"
+  href="{{ url_for('static', filename='assets/favicon.ico') }}"
+/>
+<!-- Core theme CSS (includes Bootstrap)-->
+<link
+  href="{{ url_for('static', filename='css/default.css') }}"
+  rel="stylesheet"
+/>
+<link
+  href="{{ url_for('static', filename='css/card.css') }}"
+  rel="stylesheet"
+/>

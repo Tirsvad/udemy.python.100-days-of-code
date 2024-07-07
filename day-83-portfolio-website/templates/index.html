@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}My Portfolio{% endblock %}
+{% block head %}
+<style>
+	body {
+		background-image: url("/static/assets/img/home_background.jpeg");
+		background-repeat: no-repeat;
+		background-attachment: fixed;
+		background-size: cover;
+		background-position: center center;
+		background-attachment: fixed;
+	}
+</style>
+{% endblock %}
+{% block content %}
+<main role="main" class="p-3">
+	<div class="container" style="max-width: 1024px;">
+		<div class="m-5">
+		</div>
+		<div class="hero rounded-3 p-3">
+			<div class="row">
+				<div class="col">
+					<div class="title-box text-center">
+						<h3 class="">
+								Capstone Projects
+						</h3>
+						<p class="">
+								List of some of the capstone projects from 100 days of code
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="my-5">
+			<div class="col-lg-4 col-md-6 col-12">
+				{% for row in random_portfolio %}
+				<div class="flip-card">
+					<div class="flip-card-inner">
+						<div class="flip-card-front rounded-3">
+							<div class="card-block">
+								<h3>{{row['title']}}</h3>
+								<p>{{row['description']}}</p>
+							</div>
+							<div class="card-footer">
+								<hr>
+								<span class="">{{row['type']}}</span>
+							</div>
+						</div>
+						<div class="flip-card-back rounded-3">
+							<div class="card-block">
+								<h3>{{row['title']}}</h3>
+								{% if not row['img_url'] == "" %}
+								<a href="{{row['img_url']}}" target="_blank">
+									<img src="{{row['img_url']}}" height="100px">
+								</a>
+								{% endif %}
+							</div>
+							<hr>
+							<div class="card-footer">
+								{% if not row['source_code_url'] == "" %}
+								<a href="{{row['source_code_url']}}" target="_blank">Souce code</a>
+								{% endif %}
+							</div>
+						</div>
+					</div>
+				</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
+</main>
+{% endblock %}

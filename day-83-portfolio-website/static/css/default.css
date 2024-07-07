@@ -1,4 +1,28 @@
 body {
-  background-color: #f0f0f0;
-  color: #4a4a4a;
+  background-color: #1b262c;
+  color: #96a296;
+}
+
+#mainNav {
+  background-color: #1b262c;
+  color: #96a296;
+}
+
+.background-img {
+  background-image: url("/static/assets/img/home_jumbotron.jpeg");
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center center;
+  background-attachment: fixed;
+}
+
+.hero {
+  color: #04050b;
+  background-color: #3282b8;
+}
+
+.content {
+  background-color: #96a296;
+  color: #1b262c;
 }
